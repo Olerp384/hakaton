@@ -1,0 +1,1 @@
+Self Deploy is an upcoming CLI tool that will analyze Git repositories to propose CI/CD pipelines and Dockerfiles, and this repository currently provides the scaffolded package, entrypoint, and placeholder templates needed to grow the implementation.
