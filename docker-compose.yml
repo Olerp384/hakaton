@@ -5,9 +5,17 @@ services:
     image: gitlab/gitlab-ce:latest
     hostname: gitlab
     container_name: self-deploy-gitlab
+    env_file:
+      - compose/.env
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url 'http://gitlab:80';
+        gitlab_rails['gitlab_shell_ssh_port']=2222;
+        registry_external_url 'http://gitlab:5050';
     ports:
       - "8080:80"
       - "2222:22"
+      - "5050:5050"
     volumes:
       - gitlab_config:/etc/gitlab
       - gitlab_data:/var/opt/gitlab
@@ -20,6 +28,8 @@ services:
     container_name: self-deploy-gitlab-runner
     depends_on:
       - gitlab
+    env_file:
+      - compose/.env
     environment:
       - CI_SERVER_URL=http://gitlab:80
       - REGISTRATION_TOKEN=${GITLAB_RUNNER_TOKEN:-CHANGEME}
@@ -34,10 +44,12 @@ services:
   sonar_db:
     image: postgres:15
     container_name: self-deploy-sonar-db
+    env_file:
+      - compose/.env
     environment:
-      - POSTGRES_USER=sonar
-      - POSTGRES_PASSWORD=sonar
-      - POSTGRES_DB=sonar
+      - POSTGRES_USER=${SONARQUBE_JDBC_USERNAME:-sonar}
+      - POSTGRES_PASSWORD=${SONARQUBE_JDBC_PASSWORD:-sonar}
+      - POSTGRES_DB=${SONARQUBE_DB_NAME:-sonar}
     volumes:
       - sonar_db_data:/var/lib/postgresql/data
     networks:
@@ -48,10 +60,12 @@ services:
     container_name: self-deploy-sonarqube
     depends_on:
       - sonar_db
+    env_file:
+      - compose/.env
     environment:
-      - SONAR_JDBC_USERNAME=sonar
-      - SONAR_JDBC_PASSWORD=sonar
-      - SONAR_JDBC_URL=jdbc:postgresql://sonar_db:5432/sonar
+      - SONAR_JDBC_USERNAME=${SONARQUBE_JDBC_USERNAME:-sonar}
+      - SONAR_JDBC_PASSWORD=${SONARQUBE_JDBC_PASSWORD:-sonar}
+      - SONAR_JDBC_URL=${SONARQUBE_JDBC_URL:-jdbc:postgresql://sonar_db:5432/sonar}
     ports:
       - "9000:9000"
     volumes:
@@ -66,6 +80,7 @@ services:
     container_name: self-deploy-nexus
     ports:
       - "8081:8081"
+      - "8082:8082" # typical docker hosted repo port (configure inside Nexus)
     volumes:
       - nexus_data:/nexus-data
     networks:

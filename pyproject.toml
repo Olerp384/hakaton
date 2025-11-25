@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "self-deploy"
 version = "0.1.0"
-description = "CLI skeleton for generating CI/CD pipelines and Dockerfiles."
+description = "CLI that analyzes repos and generates GitLab CI pipelines and multi-stage Dockerfiles."
 authors = [{ name = "Your Name", email = "you@example.com" }]
 readme = "README.md"
 requires-python = ">=3.10"

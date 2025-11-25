@@ -145,8 +145,10 @@ def handle_generate(args: argparse.Namespace) -> int:
 
     sonar_content = _generate_sonar_properties(descriptor, ci_context)
     sonar_path = output_dir / "sonar-project.properties"
+    existed_before = sonar_path.exists()
     _write_output(sonar_path, sonar_content, overwrite=False)
-    generated_files.append(str(sonar_path))
+    if not existed_before:
+        generated_files.append(str(sonar_path))
 
     report_files = [str(output_dir / "report.json"), str(output_dir / "report.md")]
 

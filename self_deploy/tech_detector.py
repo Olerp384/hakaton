@@ -129,6 +129,10 @@ def detect_tech(descriptor: ProjectDescriptor) -> ProjectDescriptor:
         if _contains_any(go_contents, ("github.com/onsi/ginkgo", "ginkgo")):
             add_test("ginkgo")
 
+        version_match = re.search(r"\bgo\s+([0-9.]+)", " ".join(go_contents), re.IGNORECASE)
+        if version_match:
+            result.version = version_match.group(1)
+
     elif result.language in {"js", "ts"}:
         package_contents = get_contents("package.json")
         deps = _collect_package_dependencies(package_contents)
@@ -212,7 +216,7 @@ def detect_tech(descriptor: ProjectDescriptor) -> ProjectDescriptor:
         if _contains_any(python_contents, ("tox",)):
             add_test("tox")
 
-        py_version_match = re.search(r"python[^\\n]*([0-9]+\\.[0-9]+)", " ".join(python_contents), re.IGNORECASE)
+        py_version_match = re.search(r"python[^\n]*([0-9]+\.[0-9]+)", " ".join(python_contents), re.IGNORECASE)
         if py_version_match:
             result.version = py_version_match.group(1)
 
@@ -224,6 +228,3 @@ def detect_tech(descriptor: ProjectDescriptor) -> ProjectDescriptor:
                 break
 
     return result
-        version_match = re.search(r"\\bgo\\s+([0-9.]+)", " ".join(go_contents))
-        if version_match:
-            result.version = version_match.group(1)

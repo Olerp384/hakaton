@@ -39,13 +39,13 @@ Bring up the stack:
 docker-compose up -d
 ```
 
-Optional: copy `compose/.env.example` to `compose/.env` and adjust secrets/tokens before running.
+Optional: copy `compose/.env.example` to `compose/.env` and adjust secrets/tokens before running (docker-compose already loads it for the services).
 
 ### Quick initial setup
-- **GitLab**: open http://localhost:8080, set the root password, create a project, and note the runner registration token.
-- **GitLab Runner**: set `GITLAB_RUNNER_TOKEN` (via `.env` or environment) before `docker-compose up`, or exec into the runner container and run `gitlab-runner register` using the Docker executor.
+- **GitLab**: open http://localhost:8080, set the root password (or use `GITLAB_ROOT_PASSWORD` in `.env`), create a project, and note the runner registration token.
+- **GitLab Runner**: set `GITLAB_RUNNER_TOKEN` (via `.env`) before `docker-compose up`, or exec into the runner container and run `gitlab-runner register` using the Docker executor.
 - **SonarQube**: open http://localhost:9000, set the admin password, create a project and token; configure `SONAR_HOST_URL` and `SONAR_TOKEN` CI variables.
-- **Nexus**: open http://localhost:8081, complete the admin unlock flow, and create the repos you need (Maven/npm/PyPI/Docker hosted/proxy as desired).
+- **Nexus**: open http://localhost:8081, complete the admin unlock flow, and create the repos you need (Maven/npm/PyPI/Docker hosted/proxy as desired). The Docker hosted repo can be bound to port 8082 (exposed by the compose stack).
 
 ### Testing a generated pipeline locally
 1. Generate artifacts with `self-deploy generate ...`.
