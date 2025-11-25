@@ -43,7 +43,10 @@ docker-compose up -d
 
 ### Быстрая первичная настройка
 - **GitLab**: откройте http://localhost:8080, задайте пароль root (или используйте `GITLAB_ROOT_PASSWORD` в `.env`), создайте проект и получите токен регистрации раннера.
-- **GitLab Runner**: задайте `GITLAB_RUNNER_TOKEN` (через `.env`) до старта compose или выполните `gitlab-runner register` в контейнере, выбрав Docker executor.
+- **GitLab Runner**: задайте `GITLAB_RUNNER_TOKEN` (через `.env`) до старта compose или выполните `gitlab-runner register` в контейнере, выбрав Docker executor. Упрощённый вариант — скрипт `scripts/register_runner.sh`:
+  ```bash
+  GITLAB_RUNNER_TOKEN=XXXX scripts/register_runner.sh
+  ```
 - **SonarQube**: откройте http://localhost:9000, задайте пароль admin, создайте проект и токен; пропишите `SONAR_HOST_URL` и `SONAR_TOKEN` в переменных CI.
 - **Nexus**: откройте http://localhost:8081, завершите разблокировку admin, создайте нужные репозитории (Maven/npm/PyPI/Docker hosted/proxy). Docker-hosted можно привязать к порту 8082 (уже проброшен).
 
@@ -57,3 +60,12 @@ docker-compose up -d
 - Шаблоны лежат в `templates/` (можно переопределить через переменную `SELF_DEPLOY_TEMPLATES_DIR` или параметр `templates_dir` в конфиге).
 - CI-шаблоны заточены под GitLab и включают кеширование зависимостей, SonarQube, сборку/публикацию Docker-образа и заготовки деплой-стадий.
 - Docker-шаблоны — многостадийные для Java/Kotlin, Go, Node.js/TypeScript (backend/frontend) и Python.
+
+## Если SonarQube не стартует (Elasticsearch bootstrap checks)
+Elasticsearch внутри SonarQube требует `vm.max_map_count >= 262144`. На хосте (Linux/WSL2) выполните:
+```bash
+sudo sysctl -w vm.max_map_count=262144
+echo "vm.max_map_count=262144" | sudo tee /etc/sysctl.d/99-sonarqube.conf
+sudo sysctl --system
+```
+Затем перезапустите стенд: `docker-compose down && docker-compose up -d`.

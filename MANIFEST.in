@@ -2,3 +2,4 @@ recursive-include templates *
 include docker-compose.yml
 include README.md
 include compose/.env.example
+include scripts/register_runner.sh
