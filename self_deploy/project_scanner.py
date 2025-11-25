@@ -82,6 +82,10 @@ def scan_project(root_path: str) -> ProjectDescriptor:
         "k8s_manifests": [],
         "docker_compose_files": [],
         "dockerfiles": [],
+        "detected_dirs": {},
+        "go_packages": [],
+        "python_packages": [],
+        "node_packages": [],
     }
 
     descriptor = ProjectDescriptor(
@@ -91,11 +95,28 @@ def scan_project(root_path: str) -> ProjectDescriptor:
         additional_metadata=metadata,
     )
 
-    for current_root, _dirs, files in os.walk(root_abs):
+    for current_root, dirs, files in os.walk(root_abs):
+        rel_dir = os.path.relpath(current_root, root_abs)
+        if rel_dir == ".":
+            rel_dir = ""
+        for d in dirs:
+            d_lower = d.lower()
+            if d_lower in {"src", "tests", "test", "cmd", "internal", "apps"} or d_lower.startswith(
+                ("src", "test")
+            ):
+                metadata["detected_dirs"].setdefault(d_lower, []).append(os.path.join(rel_dir, d))
+
         for filename in files:
             filename_lower = filename.lower()
             filepath = os.path.join(current_root, filename)
             relpath = os.path.relpath(filepath, root_abs)
+
+            if filename_lower.endswith(".go"):
+                metadata["go_packages"].append(relpath)
+            if filename_lower.endswith(".py"):
+                metadata["python_packages"].append(relpath)
+            if filename_lower.endswith((".js", ".ts", ".tsx", ".jsx")):
+                metadata["node_packages"].append(relpath)
 
             # Track targeted files
             if filename_lower in TARGET_FILES:

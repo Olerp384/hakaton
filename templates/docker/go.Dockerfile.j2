@@ -1,1 +1,13 @@
-# Placeholder Dockerfile template for Go applications.
+# syntax=docker/dockerfile:1
+FROM golang:1.22 AS build
+WORKDIR /app
+COPY . .
+RUN go mod download
+RUN go build -o app .
+
+FROM alpine:3.19 AS runtime
+RUN apk add --no-cache ca-certificates
+WORKDIR /app
+COPY --from=build /app/app /usr/local/bin/app
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/app"]

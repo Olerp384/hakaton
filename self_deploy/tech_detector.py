@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from copy import deepcopy
 from dataclasses import replace
 from typing import Iterable, Set
@@ -43,6 +44,7 @@ def detect_tech(descriptor: ProjectDescriptor) -> ProjectDescriptor:
     metadata = result.additional_metadata or {}
     detected_files = metadata.get("detected_files", {})
     file_contents = metadata.get("file_contents", {})
+    detected_dirs = metadata.get("detected_dirs", {})
     tests_seen: Set[str] = set(result.tests)
 
     def has_file(name: str) -> bool:
@@ -72,6 +74,27 @@ def detect_tech(descriptor: ProjectDescriptor) -> ProjectDescriptor:
         result.language = "ts" if has_file("tsconfig.json") else "js"
     elif has_file("pyproject.toml") or has_file("requirements.txt") or has_file("pipfile"):
         result.language = "python"
+
+    # Package manager defaults
+    if result.language in {"java", "kotlin"}:
+        result.package_manager = result.build_tool
+    elif result.language == "go":
+        result.package_manager = "go"
+    elif result.language in {"js", "ts"}:
+        result.package_manager = "npm"
+    elif result.language == "python":
+        if has_file("pyproject.toml"):
+            pyproject_text = "\n".join(get_contents("pyproject.toml"))
+            if "poetry" in pyproject_text:
+                result.package_manager = "poetry"
+            elif "pipenv" in pyproject_text:
+                result.package_manager = "pipenv"
+            else:
+                result.package_manager = "pip"
+        elif has_file("pipfile"):
+            result.package_manager = "pipenv"
+        else:
+            result.package_manager = "pip"
 
     # Framework detection
     if result.language in {"java", "kotlin"}:
@@ -109,6 +132,15 @@ def detect_tech(descriptor: ProjectDescriptor) -> ProjectDescriptor:
     elif result.language in {"js", "ts"}:
         package_contents = get_contents("package.json")
         deps = _collect_package_dependencies(package_contents)
+        for blob in package_contents:
+            try:
+                data = json.loads(blob)
+            except json.JSONDecodeError:
+                continue
+            pkg_mgr = data.get("packageManager")
+            if isinstance(pkg_mgr, str) and pkg_mgr:
+                result.package_manager = pkg_mgr.split("@", 1)[0]
+                break
 
         def package_text_has(*keys: str) -> bool:
             if any(any(key in dep for key in keys) for dep in deps):
@@ -146,6 +178,20 @@ def detect_tech(descriptor: ProjectDescriptor) -> ProjectDescriptor:
         if package_text_has("cypress"):
             add_test("cypress")
 
+        engines_version = None
+        for blob in package_contents:
+            try:
+                data = json.loads(blob)
+            except json.JSONDecodeError:
+                continue
+            engines = data.get("engines") or {}
+            node_version = engines.get("node")
+            if node_version:
+                engines_version = str(node_version)
+                break
+        if engines_version:
+            result.version = engines_version
+
     elif result.language == "python":
         python_contents = get_contents("pyproject.toml", "requirements.txt", "pipfile")
         if _contains_any(python_contents, ("django",)):
@@ -166,4 +212,18 @@ def detect_tech(descriptor: ProjectDescriptor) -> ProjectDescriptor:
         if _contains_any(python_contents, ("tox",)):
             add_test("tox")
 
+        py_version_match = re.search(r"python[^\\n]*([0-9]+\\.[0-9]+)", " ".join(python_contents), re.IGNORECASE)
+        if py_version_match:
+            result.version = py_version_match.group(1)
+
+    # Generic directory-based test heuristics
+    if not result.tests:
+        for dir_name in detected_dirs.keys():
+            if "test" in dir_name:
+                add_test("tests-present")
+                break
+
     return result
+        version_match = re.search(r"\\bgo\\s+([0-9.]+)", " ".join(go_contents))
+        if version_match:
+            result.version = version_match.group(1)

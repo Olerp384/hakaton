@@ -1,31 +1,59 @@
 # self-deploy
 
-Self Deploy analyzes Git repositories to infer language/tooling, then auto-generates CI/CD pipelines and multi-stage Dockerfiles so projects can get production-ready automation with minimal manual setup.
+Self Deploy analyzes a Git repository, infers its tech stack, and auto-generates GitLab CI pipelines, multi-stage Dockerfiles, and concise reports — all via local static analysis with no external calls.
 
-## Local stack (GitLab, Runner, SonarQube, Nexus)
+## Installation
 
-Start the supporting services:
+```bash
+pip install -e .
+```
+
+Requirements: Python 3.10+, Git CLI, and Docker (for running the local validation stack).
+
+## Usage
+
+Generate automation for a repository:
+
+```bash
+self-deploy generate --repo https://github.com/org/java-app.git --output ./out
+```
+
+With a branch override and custom output:
+
+```bash
+self-deploy generate --repo https://github.com/org/python-service.git --branch develop --output ./generated
+```
+
+Artifacts produced in the output directory:
+- `.gitlab-ci.yml` — GitLab CI pipeline with prepare, lint, test, sonar, build/package, docker build/push, and staged deploy jobs.
+- `Dockerfile` — multi-stage image tailored to the detected language (skipped if an existing Dockerfile was found).
+- `sonar-project.properties` — stub SonarQube configuration.
+- `report.json` — machine-readable analysis summary.
+- `report.md` — human-readable report.
+
+## Local validation stack (GitLab, Runner, SonarQube, Nexus)
+
+Bring up the stack:
 
 ```bash
 docker-compose up -d
 ```
 
-### Quick initial setup (high level)
-- GitLab: open http://localhost:8080, set root password, create a project and obtain a runner registration token.
-- GitLab Runner: set `GITLAB_RUNNER_TOKEN` env var before `docker-compose up` or register manually inside the `gitlab-runner` container to use the Docker executor.
-- SonarQube: open http://localhost:9000, set admin password, create a project and token; configure `SONAR_HOST_URL` and `SONAR_TOKEN` in CI variables.
-- Nexus: open http://localhost:8081, complete initial admin password flow, create the repos you need (e.g., Maven/npm/pypi/docker proxy/hosted).
+Optional: copy `compose/.env.example` to `compose/.env` and adjust secrets/tokens before running.
 
-## Using self-deploy
+### Quick initial setup
+- **GitLab**: open http://localhost:8080, set the root password, create a project, and note the runner registration token.
+- **GitLab Runner**: set `GITLAB_RUNNER_TOKEN` (via `.env` or environment) before `docker-compose up`, or exec into the runner container and run `gitlab-runner register` using the Docker executor.
+- **SonarQube**: open http://localhost:9000, set the admin password, create a project and token; configure `SONAR_HOST_URL` and `SONAR_TOKEN` CI variables.
+- **Nexus**: open http://localhost:8081, complete the admin unlock flow, and create the repos you need (Maven/npm/PyPI/Docker hosted/proxy as desired).
 
-Generate artifacts for a repository:
+### Testing a generated pipeline locally
+1. Generate artifacts with `self-deploy generate ...`.
+2. Push the generated `.gitlab-ci.yml` and `Dockerfile` to the GitLab instance running in Docker Compose.
+3. Add CI/CD variables for registry auth and SonarQube (`SONAR_HOST_URL`, `SONAR_TOKEN`, `CI_REGISTRY_USER`, `CI_REGISTRY_PASSWORD` if needed).
+4. Run the pipeline; inspect stages (lint/test/sonar/build/package/docker/deploy) and view results in GitLab and SonarQube.
 
-```bash
-self-deploy generate --repo <url> --output ./out
-```
-
-The tool produces:
-- `.gitlab-ci.yml` — GitLab CI pipeline tailored to the detected stack.
-- `Dockerfile` — multi-stage build aligned with the project language/tooling.
-- `report.json` — structured report of detected tech and generated artifacts.
-- `report.md` — human-readable summary of the findings.
+## Templates and customization
+- Templates live under `templates/` (overridable via `SELF_DEPLOY_TEMPLATES_DIR` or `templates_dir` in config).
+- CI templates target GitLab and include caching, SonarQube hooks, Docker build/push, and deploy stage stubs.
+- Docker templates are multi-stage for Java/Kotlin, Go, Node.js/TypeScript (backend/frontend), and Python.

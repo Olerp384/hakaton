@@ -16,7 +16,11 @@ def _templates_base_dir() -> Path:
     override = os.environ.get(TEMPLATES_ENV_VAR)
     if override:
         return Path(override).expanduser().resolve()
-    return (Path(__file__).resolve().parent.parent / "templates").resolve()
+    default_path = (Path(__file__).resolve().parent.parent / "templates").resolve()
+    if default_path.exists():
+        return default_path
+    cwd_path = (Path.cwd() / "templates").resolve()
+    return cwd_path
 
 
 def _environment(base_dir: Path) -> Environment:

@@ -32,6 +32,8 @@ def clone_repo(repo_url: str, branch: Optional[str] = None) -> str:
                 capture_output=True,
                 text=True,
             )
+    except FileNotFoundError as exc:
+        raise RuntimeError("Git is not installed or not available in PATH.") from exc
     except subprocess.CalledProcessError as exc:
         raise RuntimeError(
             f"Failed to clone repository '{repo_url}'"

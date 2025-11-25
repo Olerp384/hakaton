@@ -1,1 +1,45 @@
-# Placeholder GitLab CI template for Go projects.
+# GitLab CI template for Go
+stages:
+{% for stage in stages %}
+  - {{ stage }}
+{% endfor %}
+
+variables:
+  DOCKER_TLS_CERTDIR: ""
+  SONAR_HOST_URL: "{{ ci.sonar_host }}"
+  SONAR_TOKEN: "{{ ci.sonar_token }}"
+  DOCKER_IMAGE: "{{ ci.docker_image }}"
+  DOCKER_TAG: "{{ ci.docker_tag }}"
+  DOCKER_IMAGE_FULL: "{{ ci.docker_image_full }}"
+
+default:
+  image: {{ job_defaults.image }}
+  interruptible: true
+{% if job_defaults.before_script %}  before_script:
+{% for line in job_defaults.before_script %}    - {{ line }}
+{% endfor %}{% endif %}
+
+{% for name, job in jobs.items() %}
+{{ name }}:
+  stage: {{ job.stage }}
+{% if job.image %}  image: {{ job.image }}
+{% endif %}{% if job.services %}  services:
+{% for service in job.services %}    - {{ service }}
+{% endfor %}{% endif %}{% if job.needs %}  needs:
+{% for need in job.needs %}    - {{ need }}
+{% endfor %}{% endif %}{% if job.variables %}  variables:
+{% for key, value in job.variables.items() %}    {{ key }}: "{{ value }}"
+{% endfor %}{% endif %}{% if job.cache_paths %}  cache:
+    key: "${CI_COMMIT_REF_SLUG}"
+    paths:
+{% for path in job.cache_paths %}      - {{ path }}
+{% endfor %}{% endif %}  script:
+{% for line in job.script %}    - {{ line }}
+{% endfor %}{% if job.artifacts %}  artifacts:
+    paths:
+{% for artifact in job.artifacts %}      - {{ artifact }}
+{% endfor %}{% endif %}{% if job.rules %}  rules:
+{% for rule in job.rules %}    - if: {{ rule['if'] }}
+{% endfor %}{% endif %}
+
+{% endfor %}

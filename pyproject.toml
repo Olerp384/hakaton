@@ -8,8 +8,18 @@ version = "0.1.0"
 description = "CLI skeleton for generating CI/CD pipelines and Dockerfiles."
 authors = [{ name = "Your Name", email = "you@example.com" }]
 readme = "README.md"
-requires-python = ">=3.8"
-dependencies = []
+requires-python = ">=3.10"
+dependencies = [
+    "jinja2>=3.1",
+    "PyYAML>=6.0",
+]
 
 [project.scripts]
 self-deploy = "self_deploy.cli:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["self_deploy"]
