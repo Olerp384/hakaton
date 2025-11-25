@@ -1,59 +1,59 @@
 # self-deploy
 
-Self Deploy analyzes a Git repository, infers its tech stack, and auto-generates GitLab CI pipelines, multi-stage Dockerfiles, and concise reports — all via local static analysis with no external calls.
+self-deploy анализирует Git-репозиторий, определяет стек (язык, фреймворк, инструменты сборки и тесты) и автоматически генерирует GitLab CI пайплайн, многостадийный Dockerfile, а также краткие отчеты — всё на основе локального анализа без внешних запросов.
 
-## Installation
+## Установка
 
 ```bash
 pip install -e .
 ```
 
-Requirements: Python 3.10+, Git CLI, and Docker (for running the local validation stack).
+Требования: Python 3.10+, установленный Git CLI и Docker (для локального стенда).
 
-## Usage
+## Использование
 
-Generate automation for a repository:
+Сгенерировать артефакты для репозитория:
 
 ```bash
 self-deploy generate --repo https://github.com/org/java-app.git --output ./out
 ```
 
-With a branch override and custom output:
+Пример с указанием ветки и кастомной директории вывода:
 
 ```bash
 self-deploy generate --repo https://github.com/org/python-service.git --branch develop --output ./generated
 ```
 
-Artifacts produced in the output directory:
-- `.gitlab-ci.yml` — GitLab CI pipeline with prepare, lint, test, sonar, build/package, docker build/push, and staged deploy jobs.
-- `Dockerfile` — multi-stage image tailored to the detected language (skipped if an existing Dockerfile was found).
-- `sonar-project.properties` — stub SonarQube configuration.
-- `report.json` — machine-readable analysis summary.
-- `report.md` — human-readable report.
+Что будет создано в выходной директории:
+- `.gitlab-ci.yml` — пайплайн GitLab CI со стадиями prepare, lint, test, sonar, build/package, docker build/push и шаблонами деплоя.
+- `Dockerfile` — многостадийный образ под обнаруженный стек (пропускается, если уже есть Dockerfile).
+- `sonar-project.properties` — базовая конфигурация для SonarQube.
+- `report.json` — машиночитаемый отчет анализа.
+- `report.md` — читаемый человекоориентированный отчет.
 
-## Local validation stack (GitLab, Runner, SonarQube, Nexus)
+## Локальный стенд (GitLab, Runner, SonarQube, Nexus)
 
-Bring up the stack:
+Запустить стенд:
 
 ```bash
 docker-compose up -d
 ```
 
-Optional: copy `compose/.env.example` to `compose/.env` and adjust secrets/tokens before running (docker-compose already loads it for the services).
+Опционально: скопируйте `compose/.env.example` в `compose/.env` и поправьте токены/пароли (compose уже подключает файл).
 
-### Quick initial setup
-- **GitLab**: open http://localhost:8080, set the root password (or use `GITLAB_ROOT_PASSWORD` in `.env`), create a project, and note the runner registration token.
-- **GitLab Runner**: set `GITLAB_RUNNER_TOKEN` (via `.env`) before `docker-compose up`, or exec into the runner container and run `gitlab-runner register` using the Docker executor.
-- **SonarQube**: open http://localhost:9000, set the admin password, create a project and token; configure `SONAR_HOST_URL` and `SONAR_TOKEN` CI variables.
-- **Nexus**: open http://localhost:8081, complete the admin unlock flow, and create the repos you need (Maven/npm/PyPI/Docker hosted/proxy as desired). The Docker hosted repo can be bound to port 8082 (exposed by the compose stack).
+### Быстрая первичная настройка
+- **GitLab**: откройте http://localhost:8080, задайте пароль root (или используйте `GITLAB_ROOT_PASSWORD` в `.env`), создайте проект и получите токен регистрации раннера.
+- **GitLab Runner**: задайте `GITLAB_RUNNER_TOKEN` (через `.env`) до старта compose или выполните `gitlab-runner register` в контейнере, выбрав Docker executor.
+- **SonarQube**: откройте http://localhost:9000, задайте пароль admin, создайте проект и токен; пропишите `SONAR_HOST_URL` и `SONAR_TOKEN` в переменных CI.
+- **Nexus**: откройте http://localhost:8081, завершите разблокировку admin, создайте нужные репозитории (Maven/npm/PyPI/Docker hosted/proxy). Docker-hosted можно привязать к порту 8082 (уже проброшен).
 
-### Testing a generated pipeline locally
-1. Generate artifacts with `self-deploy generate ...`.
-2. Push the generated `.gitlab-ci.yml` and `Dockerfile` to the GitLab instance running in Docker Compose.
-3. Add CI/CD variables for registry auth and SonarQube (`SONAR_HOST_URL`, `SONAR_TOKEN`, `CI_REGISTRY_USER`, `CI_REGISTRY_PASSWORD` if needed).
-4. Run the pipeline; inspect stages (lint/test/sonar/build/package/docker/deploy) and view results in GitLab and SonarQube.
+### Как проверить сгенерированный пайплайн
+1. Выполните `self-deploy generate ...`.
+2. Залейте `.gitlab-ci.yml` и `Dockerfile` в GitLab из docker-compose.
+3. Добавьте переменные CI/CD для реестра и SonarQube (`SONAR_HOST_URL`, `SONAR_TOKEN`, `CI_REGISTRY_USER`, `CI_REGISTRY_PASSWORD` при необходимости).
+4. Запустите пайплайн и проверьте стадии (lint/test/sonar/build/package/docker/deploy) в GitLab и SonarQube.
 
-## Templates and customization
-- Templates live under `templates/` (overridable via `SELF_DEPLOY_TEMPLATES_DIR` or `templates_dir` in config).
-- CI templates target GitLab and include caching, SonarQube hooks, Docker build/push, and deploy stage stubs.
-- Docker templates are multi-stage for Java/Kotlin, Go, Node.js/TypeScript (backend/frontend), and Python.
+## Кастомизация шаблонов
+- Шаблоны лежат в `templates/` (можно переопределить через переменную `SELF_DEPLOY_TEMPLATES_DIR` или параметр `templates_dir` в конфиге).
+- CI-шаблоны заточены под GitLab и включают кеширование зависимостей, SonarQube, сборку/публикацию Docker-образа и заготовки деплой-стадий.
+- Docker-шаблоны — многостадийные для Java/Kotlin, Go, Node.js/TypeScript (backend/frontend) и Python.
